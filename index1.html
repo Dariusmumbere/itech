@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ndyakurungi ITECH Management System</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+  <div class="flex h-screen">
+    <!-- Sidebar -->
+    <div class="w-64 bg-gray-800 text-white p-4">
+      <h1 class="text-2xl font-bold mb-6 flex items-center">
+        <i class="fas fa-laptop-code mr-2"></i> ITECH
+      </h1>
+      <nav>
+        <ul>
+          <li class="mb-4">
+            <a href="#products" class="flex items-center hover:bg-gray-700 p-2 rounded" onclick="toggleDropdown('productsDropdown')">
+              <i class="fas fa-box-open mr-2"></i>
+              <span>Products</span>
+              <i class="fas fa-chevron-down ml-auto"></i>
+            </a>
+            <ul class="ml-4 mt-2 space-y-2 hidden" id="productsDropdown">
+              <li><a href="#addProduct" class="hover:bg-gray-700 p-2 rounded block" onclick="openAddProductModal()"><i class="fas fa-plus mr-2"></i>Add Product</a></li>
+              <!-- Product List in Dropdown -->
+              <div id="productListDropdown" class="space-y-2">
+                <!-- Products will be dynamically added here -->
+              </div>
+            </ul>
+          </li>
+          <li class="mb-4">
+            <a href="#services" class="flex items-center hover:bg-gray-700 p-2 rounded" onclick="toggleDropdown('servicesDropdown')">
+              <i class="fas fa-cogs mr-2"></i>
+              <span>Services</span>
+              <i class="fas fa-chevron-down ml-auto"></i>
+            </a>
+            <ul class="ml-4 mt-2 space-y-2 hidden" id="servicesDropdown">
+              <li><a href="#addService" class="hover:bg-gray-700 p-2 rounded block" onclick="openAddServiceModal()"><i class="fas fa-plus mr-2"></i>Add Service</a></li>
+            </ul>
+          </li>
+          <li class="mb-4">
+            <a href="#history" class="flex items-center hover:bg-gray-700 p-2 rounded" onclick="toggleDropdown('historyDropdown')">
+              <i class="fas fa-history mr-2"></i>
+              <span>History</span>
+              <i class="fas fa-chevron-down ml-auto"></i>
+            </a>
+            <ul class="ml-4 mt-2 space-y-2 hidden" id="historyDropdown">
+              <li><a href="#viewTransactions" class="hover:bg-gray-700 p-2 rounded block"><i class="fas fa-receipt mr-2"></i>View Transactions</a></li>
+            </ul>
+          </li>
+        </ul>
+      </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="flex-1 p-8 overflow-y-auto">
+      <h2 class="text-3xl font-bold mb-6">Overview</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <!-- Total Sales Card -->
+        <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6 rounded-lg shadow text-white">
+          <h3 class="text-lg font-semibold"><i class="fas fa-chart-line mr-2"></i>Total Sales</h3>
+          <p class="text-2xl font-bold">$<span id="totalSales">0</span></p>
+        </div>
+        <!-- Total Profits Card -->
+        <div class="bg-gradient-to-r from-green-500 to-green-600 p-6 rounded-lg shadow text-white">
+          <h3 class="text-lg font-semibold"><i class="fas fa-coins mr-2"></i>Total Profits</h3>
+          <p class="text-2xl font-bold">$<span id="totalProfits">0</span></p>
+        </div>
+        <!-- Total Expenses Card -->
+        <div class="bg-gradient-to-r from-purple-500 to-purple-600 p-6 rounded-lg shadow text-white">
+          <h3 class="text-lg font-semibold"><i class="fas fa-money-bill-wave mr-2"></i>Total Expenses</h3>
+          <p class="text-2xl font-bold">$<span id="totalExpenses">0</span></p>
+        </div>
+      </div>
+
+      <!-- Sales Graph -->
+      <div class="bg-white p-6 rounded-lg shadow mb-8">
+        <h3 class="text-lg font-semibold mb-4"><i class="fas fa-chart-bar mr-2"></i>Sales Over Last 6 Months</h3>
+        <canvas id="salesChart"></canvas>
+      </div>
+
+      <!-- Recent Transactions -->
+      <div class="bg-white p-6 rounded-lg shadow">
+        <h3 class="text-lg font-semibold mb-4"><i class="fas fa-receipt mr-2"></i>Last 3 Transactions</h3>
+        <ul id="recentTransactions" class="space-y-2">
+          <!-- Transactions will be dynamically added here -->
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Product Modal -->
+  <div id="addProductModal" class="fixed inset-0 bg-black bg-opacity-50 hidden justify-center items-center">
+    <div class="bg-white p-6 rounded-lg w-96">
+      <h3 class="text-lg font-semibold mb-4"><i class="fas fa-plus mr-2"></i>Add Product</h3>
+      <form id="addProductForm">
+        <input type="text" placeholder="Product Name" class="w-full p-2 border rounded mb-4" required>
+        <button type="submit" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 transition-colors">Add Product</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- JavaScript -->
+  <script>
+    const products = [];
+    let totalSales = 0;
+    let totalProfits = 0;
+    let totalExpenses = 0;
+    const recentTransactions = [];
+
+    // Toggle Dropdowns
+    function toggleDropdown(id) {
+      const dropdown = document.getElementById(id);
+      dropdown.classList.toggle('hidden');
+    }
+
+    // Open Add Product Modal
+    function openAddProductModal() {
+      document.getElementById('addProductModal').classList.remove('hidden');
+    }
+
+    // Add Product
+    document.getElementById('addProductForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const productName = e.target[0].value;
+      products.push({ name: productName, price: 0 }); // Price is set to 0 initially
+      alert('Product added successfully!');
+      e.target.reset();
+      document.getElementById('addProductModal').classList.add('hidden');
+      updateProductListDropdown();
+    });
+
+    // Update Product List in Dropdown
+    function updateProductListDropdown() {
+      const productListDropdown = document.getElementById('productListDropdown');
+      productListDropdown.innerHTML = products.map((product) => `
+        <li class="p-2 bg-gray-700 rounded">
+          <span>${product.name}</span>
+        </li>
+      `).join('');
+    }
+
+    // Update Overview
+    function updateOverview() {
+      document.getElementById('totalSales').textContent = totalSales.toFixed(2);
+      document.getElementById('totalProfits').textContent = totalProfits.toFixed(2);
+      document.getElementById('totalExpenses').textContent = totalExpenses.toFixed(2);
+      const transactionsList = document.getElementById('recentTransactions');
+      transactionsList.innerHTML = recentTransactions.map(t => `<li class="p-2 bg-gray-100 rounded">${t}</li>`).join('');
+    }
+
+    // Generate Receipt
+    function generateReceipt(product, profit) {
+      const doc = new jsPDF();
+      doc.text(`Receipt for ${product.name}`, 10, 10);
+      doc.text(`Price: $${product.price.toFixed(2)}`, 10, 20);
+      doc.text(`Profit: $${profit.toFixed(2)}`, 10, 30);
+      doc.save(`receipt_${product.name}.pdf`);
+    }
+
+    // Sales Chart
+    const ctx = document.getElementById('salesChart').getContext('2d');
+    const salesChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+        datasets: [{
+          label: 'Sales ($)',
+          data: [1200, 1900, 3000, 2500, 2000, 2800],
+          borderColor: '#3b82f6',
+          fill: false,
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: true
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>
